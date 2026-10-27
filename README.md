@@ -146,3 +146,11 @@ npm run smoke
 CI covers offline tests on Linux and Windows plus real HTTP/SQLite storage compatibility. The optional live pilot requires network access and provider availability. If using an environment proxy with Node24, enable `NODE_USE_ENV_PROXY=1` as appropriate for your network. A 429/timeout is a failed lookup, not proof that a name has no bearers.
 
 Provider references: [data access/licensing](https://www.wikidata.org/wiki/Wikidata:Data_access), [Wikibase API](https://www.mediawiki.org/wiki/Wikibase/API), [given name P735](https://www.wikidata.org/wiki/Property:P735), [family name P734](https://www.wikidata.org/wiki/Property:P734), [WDQS graph split](https://www.wikidata.org/wiki/Wikidata:SPARQL_query_service/WDQS_graph_split). See the [design](docs/superpowers/specs/2026-10-27-wikidata-client-design.md) and [plan](docs/superpowers/plans/2026-10-27-wikidata-client.md).
+
+## Managed local API and in-memory credentials
+
+This project ships `config.default.yaml` (loopback port **4320**) and `npm run serve`. In managed mode, the orchestrator launches the service with a per-boot control credential, checks its boot identity and sends the provider credential to authenticated `POST /v1/credentials`. Keys are held in memory; none belong in YAML. `{"token":null}` clears the credential. Public providers do not need a provider token.
+
+`GET /v1/tools` lists tool definitions; `POST /v1/tools/TOOL_NAME` invokes the existing validated MCP tool. Both require the per-boot control credential. `GET /health` returns non-secret identity/readiness information. `npm run mcp:remote` is a stdio bridge to the local API, using `NAMES_SERVICE_URL` and `NAMES_CONTROL_TOKEN` in the supervising host's memory. The original standalone `npm run mcp` remains available for compatibility.
+
+Use the orchestrator vault/fleet setup to avoid managing plaintext provider-key files. The managed port registry overrides the standalone default port at launch. Credentials/caches are discarded on rotation or process exit; slow requests crossing credential rotation are refused. Browser origins are rejected and listeners bind only to IPv4 loopback. See [the orchestrator setup](https://github.com/lambdawalker/ds.names.orchestrator/blob/main/docs/local-services.md).
