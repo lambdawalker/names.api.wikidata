@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { WikidataClient, toDocumentInput, toBearerFinding } from '../dist/index.js';
+const userAgent = process.env.WIKIDATA_USER_AGENT; assert(userAgent, 'Set WIKIDATA_USER_AGENT');
+const client = new WikidataClient({ userAgent, timeoutMs: 25000 });
+const search = await client.searchNames('John', { limit: 5 }); assert(search.data.results.some(row => row.id === 'Q4925477'));
+const name = await client.getEntity('Q4925477'); assert(name.revision); assert.equal(toDocumentInput(name).source.license.name, 'CC0 1.0');
+const bearers = await client.getBearers('Q4925477', { kind: 'given_name', limit: 3 }); assert(bearers.data.results.length > 0);
+const person = await client.getEntity(bearers.data.results[0].id);
+const finding = toBearerFinding(person, { nameEntityId: 'Q4925477', kind: 'given_name', formIds: ['example-john'] });
+assert.equal(finding.notable_bearers[0].status, 'candidate');
+console.log(JSON.stringify({ searchCandidates: search.data.results.length, nameId: name.data.id, nameRevision: name.revision, bearerCandidates: bearers.data.results.length, validatedPerson: person.data.id, personRevision: person.revision, ranking: bearers.data.ranking }));
